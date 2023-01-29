@@ -1,0 +1,42 @@
+# postgres with adminer
+version: "3.4"
+
+services:
+  adminer:
+    container_name: gobank-adminer
+    image: adminer:4.8.1
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: pgsql
+      ADMINER_DESIGN: pepa-linha
+    ports:
+      - "8080:8080"
+    networks:
+      - gobank
+
+  postgres:
+    container_name: gobank-database
+    image: postgres
+    environment:
+      PGDATA: /data/postgres
+      POSTGRES_HOSTNAME_ORM: localhost
+      POSTGRES_HOSTNAME: localhost
+      POSTGRES_USER: gobank
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: gobank-db
+      POSTGRES_PORT: 5432
+
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - gobank
+    restart: on-failure
+
+networks:
+  gobank:
+volumes:
+  postgres:

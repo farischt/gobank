@@ -1,0 +1,19 @@
+
+# Ignore config files
+*.development.json
+*.production.json
+
+# Ignore build files 
+build/
+dist/
+bin/
+
+# Ignore mac files
+.DS_Store
+
+# Ignore executables
+gobank
+*.exe
+*.out
+*.dll
+*.APP
