@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 	"log"
 
 	"github.com/farischt/gobank/config"
@@ -10,22 +10,14 @@ import (
 )
 
 type Storage interface {
-	GetAccount(int) (*Account, error)
+	CreateUser(*CreateUserDTO) error
+	GetUserByEmail(string) (*User, error)
+	GetUserBydID(uint) (*User, error)
+	GetAccount(uint) (*Account, error)
 	GetAllAccount() ([]*Account, error)
 	CreateAccount(*CreateAccountDTO) error
-	DeleteAccount(int) error
-}
-
-func GetPgConnectionStr() string {
-	c := config.GetConfig()
-
-	host := c.GetString("DB_HOST")
-	user := c.GetString("DB_USER")
-	password := c.GetString("DB_PASSWORD")
-	name := c.GetString("DB_NAME")
-	port := c.GetString("DB_PORT")
-
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", host, user, password, name, port)
+	DeleteAccount(uint) error
+	CreateTxn(uint, *CreateTransactionDTO) error
 }
 
 type PgStorage struct {
@@ -33,8 +25,7 @@ type PgStorage struct {
 }
 
 func NewPgStorage() (*PgStorage, error) {
-
-	url := GetPgConnectionStr()
+	url := getPgConnectionStr()
 	db, err := sql.Open("postgres", url)
 
 	if err != nil {
@@ -49,20 +40,90 @@ func NewPgStorage() (*PgStorage, error) {
 	}, nil
 }
 
-// Service Layer
-func (s *PgStorage) GetAccount(id int) (*Account, error) {
+/* ---------------------------------- User ---------------------------------- */
+
+/*
+CreateUser is a method to create a user.
+It takes a CreateUserDTO and returns an error.
+*/
+func (s *PgStorage) CreateUser(input *CreateUserDTO) error {
+	query := `INSERT INTO "user" (first_name, last_name, email) VALUES ($1, $2, $3)`
+	_, err := s.db.Exec(
+		query,
+		input.FirstName,
+		input.LastName,
+		input.Email,
+	)
+
+	return err
+}
+
+/*
+GetUserByEmail is a method to get a user by email.
+It takes an email and returns a User and an error.
+*/
+func (s *PgStorage) GetUserByEmail(email string) (*User, error) {
+	query := `SELECT * FROM "user" WHERE email = $1`
+
+	row := s.db.QueryRow(query, email)
+	user, err := scanUser(row)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user_not_found")
+		}
+
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *PgStorage) GetUserBydID(id uint) (*User, error) {
+	query := `SELECT * FROM "user" WHERE id = $1`
+
+	row := s.db.QueryRow(query, id)
+	user, err := scanUser(row)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user_not_found")
+		}
+
+		return nil, err
+	}
+
+	return user, nil
+}
+
+/* --------------------------------- Account -------------------------------- */
+
+/*
+GetAccount is a method to get an account by id.
+It takes an id and returns an Account and an error.
+*/
+func (s *PgStorage) GetAccount(id uint) (*Account, error) {
+	// query := `SELECT a.*, u.first_name, u.last_name, u.email FROM account AS a LEFT JOIN "user" AS u ON a.user_id = u.id WHERE a.id = $1`
 	query := `SELECT * FROM account WHERE id = $1`
 
 	row := s.db.QueryRow(query, id)
 	account, err := scanAccount(row)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("account_not_found")
+		}
+
 		return nil, err
 	}
 
 	return account, nil
 }
 
+/*
+GetAllAccount is a method to get all accounts.
+It returns an array of Account and an error.
+*/
 func (s *PgStorage) GetAllAccount() ([]*Account, error) {
 	query := `SELECT * FROM account OFFSET $1 LIMIT $2`
 	rows, err := s.db.Query(query, 0, 10)
@@ -80,51 +141,38 @@ func (s *PgStorage) GetAllAccount() ([]*Account, error) {
 	return accounts, nil
 }
 
+/*
+CreateAccount is a method to create an account.
+It takes a CreateAccountDTO and returns an error.
+*/
 func (s *PgStorage) CreateAccount(account *CreateAccountDTO) error {
-	query := `INSERT INTO account (first_name, last_name) VALUES ($1, $2)`
+	query := `INSERT INTO account (user_id) VALUES ($1)`
 	_, err := s.db.Exec(
 		query,
-		account.FirstName,
-		account.LastName,
+		account.UserID,
 	)
 	return err
 }
 
-func (s *PgStorage) DeleteAccount(id int) error {
+/*
+DeleteAccount is a method to delete an account by id.
+It takes an id and returns an error.
+*/
+func (s *PgStorage) DeleteAccount(id uint) error {
 	query := `DELETE FROM account WHERE "id" = $1`
-	_, err := s.db.Exec(query, id)
+	_, err := s.db.Query(query, id)
 	return err
 }
 
-/*
-Utils functions
-*/
-func scanAccount(row *sql.Row) (*Account, error) {
-	a := new(Account)
-	err := row.Scan(&a.ID, &a.FirstName, &a.LastName, &a.Balance, &a.CreatedAt, &a.UpdatedAt)
-	return a, err
-}
+/* --------------------------------- Transaction ---------------------------- */
 
-func scanAccounts(rows *sql.Rows) ([]*Account, error) {
-	accounts := []*Account{}
-	for rows.Next() {
-		account := new(Account)
-
-		err := rows.Scan(
-			&account.ID,
-			&account.FirstName,
-			&account.LastName,
-			&account.Balance,
-			&account.CreatedAt,
-			&account.UpdatedAt,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		accounts = append(accounts, account)
-	}
-
-	return accounts, nil
+func (s *PgStorage) CreateTxn(from uint, data *CreateTransactionDTO) error {
+	query := `INSERT INTO transaction (from_id, to_id, amount) VALUES ($1, $2, $3)`
+	_, err := s.db.Exec(
+		query,
+		from,
+		data.To,
+		data.Amount,
+	)
+	return err
 }
