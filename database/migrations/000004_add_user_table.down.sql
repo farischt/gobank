@@ -1,0 +1,14 @@
+BEGIN TRANSACTION;
+
+ALTER TABLE "user"
+    DROP CONSTRAINT IF EXISTS user_email_key,
+    DROP CONSTRAINT IF EXISTS account_user_id_fkey;
+
+ALTER TABLE account
+    ADD COLUMN first_name VARCHAR NOT NULL,
+    ADD COLUMN last_name VARCHAR NOT NULL,
+    DROP COLUMN IF EXISTS user_id;
+
+DROP TABLE IF EXISTS "user";
+
+COMMIT;
