@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/farischt/gobank/config"
@@ -10,14 +11,20 @@ import (
 )
 
 type Storage interface {
+	// User
 	CreateUser(*CreateUserDTO) error
 	GetUserByEmail(string) (*User, error)
 	GetUserBydID(uint) (*User, error)
+
+	// Account
 	GetAccount(uint) (*Account, error)
 	GetAllAccount() ([]*Account, error)
 	CreateAccount(*CreateAccountDTO) error
 	DeleteAccount(uint) error
+
+	// Transaction
 	CreateTxn(uint, *CreateTransactionDTO) error
+	CreateTxnAndUpdateBalance(from *Account, to *Account, fromFinalBalance float64, toFinalBalance float64, data *CreateTransactionDTO) error
 }
 
 type PgStorage struct {
@@ -175,4 +182,58 @@ func (s *PgStorage) CreateTxn(from uint, data *CreateTransactionDTO) error {
 		data.Amount,
 	)
 	return err
+}
+
+func (s *PgStorage) CreateTxnAndUpdateBalance(from *Account, to *Account, fromFinalBalance float64, toFinalBalance float64, data *CreateTransactionDTO) error {
+	// Start transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// defer rollback if error
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	createTxnQuery := `INSERT INTO transaction (from_id, to_id, amount) VALUES ($1, $2, $3)`
+	_, err = tx.Exec(
+		createTxnQuery,
+		from.ID,
+		to.ID,
+		data.Amount,
+	)
+
+	if err != nil {
+		return fmt.Errorf("error creating transaction")
+	}
+
+	// Update balance
+	updateFromBalanceQuery := `UPDATE account SET balance = $1 WHERE id = $2`
+	_, err = tx.Exec(
+		updateFromBalanceQuery,
+		fromFinalBalance,
+		from.ID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("error updating from account balance")
+	}
+
+	updateToBalanceQuery := `UPDATE account SET balance = $1 WHERE id = $2`
+	_, err = tx.Exec(
+		updateToBalanceQuery,
+		toFinalBalance,
+		to.ID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("error updating to account balance")
+	}
+
+	return nil
 }
