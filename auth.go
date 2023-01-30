@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,10 +10,54 @@ import (
 	jwt "github.com/golang-jwt/jwt/v4"
 )
 
+func (s *ApiServer) HandleLogin(w http.ResponseWriter, r *http.Request) error {
+	switch r.Method {
+	case "POST":
+		return s.handleCreateToken(w, r)
+	default:
+		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
+	}
+}
+
+/*
+handleCreateToken is the controller that handles the POST /auth/login endpoint.
+It creates a new token for the user.
+*/
+func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) error {
+	data := new(LoginDTO)
+
+	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
+		return NewApiError(http.StatusBadRequest, "invalid_request_body")
+	}
+	defer r.Body.Close()
+
+	if data.AccountNumber <= 0 {
+		return NewApiError(http.StatusBadRequest, "missing_account_number")
+	}
+
+	// Check if the account exists
+	a, err := s.store.GetAccount(data.AccountNumber)
+	if err != nil {
+		if err.Error() == "account_not_found" {
+			return NewApiError(http.StatusNotFound, err.Error())
+		}
+		return err
+	}
+
+	// TODO Check if the password is correct
+	token, err := createAuthToken(a)
+
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, token, r))
+}
+
 /*
 withAuth is a middleware to protect routes that require authentication.
 */
-func withAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+func WithAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("authentication protected route")
 
@@ -41,7 +86,7 @@ func withAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 /*
 withoutAuth is a middleware to protect routes that must not be authenticated.
 */
-func withoutAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+func WithoutAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("without authentication protected route")
 
