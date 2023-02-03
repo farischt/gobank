@@ -63,18 +63,18 @@ func WithAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 		token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
 		if len(token) == 0 {
-			WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "missing_token"))
+			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "missing_token"))
 			return
 		}
 
 		t, err := validateAuthToken(token)
 		if err != nil {
-			WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token_error"))
+			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token_error"))
 			return
 		}
 
 		if !t.Valid {
-			WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token"))
+			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token"))
 			return
 		}
 
@@ -93,7 +93,7 @@ func WithoutAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		// Check if the token is already set
 		token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
 		if len(token) > 0 {
-			WriteJSON(w, http.StatusForbidden, NewApiError(http.StatusForbidden, "already_authenticated"))
+			_ = WriteJSON(w, http.StatusForbidden, NewApiError(http.StatusForbidden, "already_authenticated"))
 			return
 		}
 
