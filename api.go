@@ -2,12 +2,52 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
+
+/* API ERROR */
+type ApiError struct {
+	Status    int       `json:"status"`
+	Err       string    `json:"error"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func NewApiError(s int, e string) ApiError {
+	return ApiError{
+		Status:    s,
+		Err:       e,
+		Timestamp: time.Now(),
+	}
+}
+
+func (a ApiError) Error() string {
+	return a.Err
+}
+
+/* API RESPONSE */
+type ApiResponse struct {
+	Status    int         `json:"status"`
+	Timestamp time.Time   `json:"timestamp"`
+	Method    string      `json:"method"`
+	Path      string      `json:"path"`
+	Data      interface{} `json:"data"`
+}
+
+func NewApiResponse(s int, d interface{}, r *http.Request) ApiResponse {
+	return ApiResponse{
+		Status:    s,
+		Timestamp: time.Now(),
+		Data:      d,
+		Method:    r.Method,
+		Path:      r.URL.Path,
+	}
+}
 
 /*
 ApiServer is the API server.
@@ -33,294 +73,80 @@ Start starts the API server.
 func (s *ApiServer) Start() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/user", makeHTTPFunc(s.handleUser))
-	router.HandleFunc("/auth/login", withoutAuth(makeHTTPFunc(s.handleLogin)))
-	router.HandleFunc("/account", makeHTTPFunc(s.handleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPFunc(s.handleUniqueAccount))
-	router.HandleFunc("/transfer", withAuth(makeHTTPFunc(s.handleTransfer)))
+	router.HandleFunc("/user", makeHTTPFunc(s.HandleUser))
+	router.HandleFunc("/auth/login", WithoutAuth(makeHTTPFunc(s.HandleLogin)))
+	router.HandleFunc("/account", makeHTTPFunc(s.HandleAccount))
+	router.HandleFunc("/account/{id}", makeHTTPFunc(s.HandleUniqueAccount))
+	router.HandleFunc("/transfer", WithAuth(makeHTTPFunc(s.HandleTransfer)))
 
 	log.Println("Server up and running on port ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
 }
 
-/* ------------------------------- Handlers ------------------------------ */
-
 /*
-handleUser routes the request to the appropriate handler for /user endpoint.
+WriteJSON is a helper function to write JSON response.
+It will set the content-type to application/json and write the status code.
+It returns an error if the encoding fails.
 */
-func (s *ApiServer) handleUser(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "POST":
-		return s.handleCreateUser(w, r)
-	default:
-		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
-	}
-}
-
-func (s *ApiServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "POST":
-		return s.handleCreateToken(w, r)
-	default:
-		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
-	}
+func WriteJSON(w http.ResponseWriter, status int, v any) error {
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(status)
+	return json.NewEncoder(w).Encode(v)
 }
 
 /*
-handleAccount routes the request to the appropriate handler for /account endpoint.
+apiFunc is a function that handles an API request.
+It returns an error if the request fails.
 */
-func (s *ApiServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "GET":
-		return s.handleGetAccounts(w, r)
-	case "POST":
-		return s.handleCreateAccount(w, r)
-	default:
-		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
-	}
-}
+type apiFunc func(http.ResponseWriter, *http.Request) error
 
 /*
-handleUniqueAccount routes the request to the appropriate handler for /account/{id} endpoint.
+makeHTTPFunc is a helper function to convert an apiFunc to http.HandlerFunc.
+It returns an http.HandlerFunc that will write the error as JSON response.
 */
-func (s *ApiServer) handleUniqueAccount(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "GET":
-		return s.handleGetAccount(w, r)
-	case "DELETE":
-		return s.handleDeleteAccount(w, r)
-	default:
-		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
-	}
-}
-
-func (s *ApiServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "POST":
-		return s.handleCreateTransaction(w, r)
-	default:
-		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
-	}
-}
-
-/* ------------------------------- Controllers ------------------------------ */
-
-/*
-handleCreateUser is the controller that handles the POST /user endpoint.
-*/
-func (s *ApiServer) handleCreateUser(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateUserDTO)
-
-	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
-		return NewApiError(http.StatusBadRequest, "invalid_request_body")
-	}
-	defer r.Body.Close()
-
-	if len(data.FirstName) == 0 {
-		return NewApiError(http.StatusBadRequest, "empty_first_name")
-	} else if len(data.LastName) == 0 {
-		return NewApiError(http.StatusBadRequest, "empty_last_name")
-	} else if len(data.Email) == 0 {
-		return NewApiError(http.StatusBadRequest, "empty_email")
-	}
-
-	exist, err := s.store.GetUserByEmail(data.Email)
-	if err == nil && exist != nil {
-		return NewApiError(http.StatusBadRequest, "email_already_exist")
-	}
-
-	err = s.store.CreateUser(data)
-	if err != nil {
-		return err
-	}
-
-	return WriteJSON(w, http.StatusCreated, NewApiResponse(http.StatusCreated, data, r))
-}
-
-/*
-handleCreateToken is the controller that handles the POST /auth/login endpoint.
-It creates a new token for the user.
-*/
-func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) error {
-	data := new(LoginDTO)
-
-	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
-		return NewApiError(http.StatusBadRequest, "invalid_request_body")
-	}
-	defer r.Body.Close()
-
-	if data.AccountNumber <= 0 {
-		return NewApiError(http.StatusBadRequest, "missing_account_number")
-	}
-
-	// Check if the account exists
-	a, err := s.store.GetAccount(data.AccountNumber)
-	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, err.Error())
+func makeHTTPFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := f(w, r)
+		if err != nil {
+			if e, ok := err.(ApiError); ok {
+				WriteJSON(w, e.Status, e)
+				return
+			}
+			WriteJSON(w, http.StatusInternalServerError, NewApiError(http.StatusInternalServerError, err.Error()))
 		}
-		return err
 	}
-
-	// TODO Check if the password is correct
-	token, err := createAuthToken(a)
-
-	if err != nil {
-		return err
-	}
-
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, token, r))
 }
 
 /*
-handleGetAccounts is the controller that handles the GET /account endpoint.
+getStringParameter is a helper function to get a string parameter from the request.
+It takes the request and the parameter name.
+It returns the parameter value and an error if the parameter is missing.
 */
-func (s *ApiServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetAllAccount()
-	if err != nil {
-		return err
+func GetStringParameter(r *http.Request, param string) (string, error) {
+	vars := mux.Vars(r)
+	p, ok := vars[param]
+	if !ok {
+		return "", NewApiError(http.StatusBadRequest, fmt.Sprintf("missing_%s", param))
 	}
 
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, accounts, r))
+	return p, nil
 }
 
 /*
-handleCreateAccount is the controller that handles the POST /account endpoint.
+getIntParameter is a helper function to get an integer parameter from the request.
+It takes the request and the parameter name.
+It returns the parameter value and an error if the parameter is missing or invalid.
 */
-func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateAccountDTO)
-
-	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
-		return NewApiError(http.StatusBadRequest, "invalid_request_body")
-	}
-	defer r.Body.Close()
-
-	if data.UserID <= 0 {
-		return NewApiError(http.StatusBadRequest, "invalid_user_id")
-	}
-
-	// check if user exists
-	user, err := s.store.GetUserBydID(data.UserID)
+func GetIntParameter(r *http.Request, param string) (uint, error) {
+	p, err := GetStringParameter(r, param)
 	if err != nil {
-		if err.Error() == "user_not_found" {
-			return NewApiError(http.StatusNotFound, err.Error())
-		}
-		return err
+		return 0, err
 	}
-	data.UserID = user.ID
 
-	err = s.store.CreateAccount(data)
+	parsedParameter, err := strconv.Atoi(p)
 	if err != nil {
-		return err
+		return 0, NewApiError(http.StatusBadRequest, fmt.Sprintf("invalid_%s", param))
 	}
 
-	return WriteJSON(w, http.StatusCreated, NewApiResponse(http.StatusCreated, data, r))
-}
-
-/*
-handleGetAccount is the controller that handles the GET /account/{id} endpoint.
-*/
-func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	id, err := getIntParameter(r, "id")
-	if err != nil {
-		return err
-	}
-
-	a, err := s.store.GetAccount(id)
-	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, err.Error())
-		}
-		return err
-	}
-
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, a, r))
-}
-
-/*
-handleDeleteAccount is the controller that handles the DELETE /account/{id} endpoint.
-*/
-func (s *ApiServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
-	id, err := getIntParameter(r, "id")
-	if err != nil {
-		return err
-	}
-
-	account, err := s.store.GetAccount(id)
-	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, err.Error())
-		}
-		return err
-	}
-
-	err = s.store.DeleteAccount(id)
-	if err != nil {
-		return err
-	}
-
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, map[string]uint{"deleted": account.ID}, r))
-}
-
-/*
-	WIP
-
-handleTransfer is the controller that handles the POST /transfer endpoint.
-*/
-func (s *ApiServer) handleCreateTransaction(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateTransactionDTO)
-
-	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
-		return NewApiError(http.StatusBadRequest, "invalid_request_body")
-	}
-	defer r.Body.Close()
-
-	if data.Amount <= 0 {
-		return NewApiError(http.StatusBadRequest, "invalid_amount")
-	} else if data.To == 0 {
-		return NewApiError(http.StatusBadRequest, "invalid_to_account_id")
-	}
-
-	id := GetAuthenticatedAccountId(r)
-
-	fromAccount, err := s.store.GetAccount(*id)
-	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, "from_account_not_found")
-		}
-		return err
-	}
-
-	// Check if the to account exists
-	toAccount, err := s.store.GetAccount(data.To)
-	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, "to_account_not_found")
-		}
-		return err
-	}
-
-	if fromAccount.ID == toAccount.ID {
-		return NewApiError(http.StatusBadRequest, "cannot_transfer_to_same_account")
-	}
-
-	balance, _ := strconv.ParseFloat(string(fromAccount.Balance), 64)
-	if balance < data.Amount {
-		return NewApiError(http.StatusBadRequest, "insufficient_balance")
-	}
-
-	// Create the transaction
-
-	err = s.store.CreateTxn(fromAccount.ID, data)
-	if err != nil {
-		return err
-	}
-
-	// Update the balance of the from account
-	//fromBalance := balance - data.Amount
-
-	// Update the balance of the to account
-	//toBalance := balance + data.Amount
-
-	return WriteJSON(w, http.StatusCreated, NewApiResponse(http.StatusCreated, data, r))
+	return uint(parsedParameter), nil
 }
