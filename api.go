@@ -80,7 +80,11 @@ func (s *ApiServer) Start() {
 	router.HandleFunc("/transfer", WithAuth(makeHTTPFunc(s.HandleTransfer)))
 
 	log.Println("Server up and running on port ", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, router)
+	err := http.ListenAndServe(s.listenAddr, router)
+
+	if err != nil { 
+		log.Fatal(err)
+	}
 }
 
 /*
@@ -109,10 +113,10 @@ func makeHTTPFunc(f apiFunc) http.HandlerFunc {
 		err := f(w, r)
 		if err != nil {
 			if e, ok := err.(ApiError); ok {
-				WriteJSON(w, e.Status, e)
+				_ = WriteJSON(w, e.Status, e)
 				return
 			}
-			WriteJSON(w, http.StatusInternalServerError, NewApiError(http.StatusInternalServerError, err.Error()))
+			_ = WriteJSON(w, http.StatusInternalServerError, NewApiError(http.StatusInternalServerError, err.Error()))
 		}
 	}
 }
