@@ -1,21 +1,29 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/farischt/gobank/config"
 	"github.com/farischt/gobank/dto"
+	"github.com/farischt/gobank/store"
 	"github.com/farischt/gobank/types"
 	jwt "github.com/golang-jwt/jwt/v4"
 )
 
-func (s *ApiServer) HandleLogin(w http.ResponseWriter, r *http.Request) error {
+type AuthenticationHandler struct {
+	store store.Store
+}
+
+func NewAuthenticationHandler(store store.Store) *AuthenticationHandler {
+	return &AuthenticationHandler{store: store}
+}
+
+func (h *AuthenticationHandler) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
-		return s.handleCreateToken(w, r)
+		return h.handleCreateToken(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
@@ -25,7 +33,7 @@ func (s *ApiServer) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 handleCreateToken is the controller that handles the POST /auth/login endpoint.
 It creates a new token for the user.
 */
-func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) error {
+func (h *AuthenticationHandler) handleCreateToken(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.LoginDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -38,7 +46,7 @@ func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) er
 	}
 
 	// Check if the account exists
-	a, err := s.store.Account.GetAccount(data.AccountNumber)
+	a, err := h.store.Account.GetAccount(data.AccountNumber)
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -56,53 +64,7 @@ func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) er
 	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, token, r))
 }
 
-/*
-withAuth is a middleware to protect routes that require authentication.
-*/
-func WithAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("authentication protected route")
 
-		token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
-		if len(token) == 0 {
-			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "missing_token"))
-			return
-		}
-
-		t, err := validateAuthToken(token)
-		if err != nil {
-			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token_error"))
-			return
-		}
-
-		if !t.Valid {
-			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token"))
-			return
-		}
-
-		// Equivalent to next() in express
-		handlerFunc(w, r)
-	}
-}
-
-/*
-withoutAuth is a middleware to protect routes that must not be authenticated.
-*/
-func WithoutAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("without authentication protected route")
-
-		// Check if the token is already set
-		token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
-		if len(token) > 0 {
-			_ = WriteJSON(w, http.StatusForbidden, NewApiError(http.StatusForbidden, "already_authenticated"))
-			return
-		}
-
-		// Equivalent to next() in express
-		handlerFunc(w, r)
-	}
-}
 
 /*
 validateAuth is a function to validate the token.

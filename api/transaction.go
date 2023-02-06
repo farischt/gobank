@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -6,9 +6,19 @@ import (
 	"strconv"
 
 	"github.com/farischt/gobank/dto"
+	"github.com/farischt/gobank/store"
 )
 
-func (s *ApiServer) HandleTransfer(w http.ResponseWriter, r *http.Request) error {
+
+type TransactionHandler struct {
+	store store.Store
+}
+
+func NewTransactionHandler(store store.Store) *TransactionHandler {
+	return &TransactionHandler{store: store}
+}
+
+func (s *TransactionHandler) HandleTransfer(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
 		return s.handleCreateTransaction(w, r)
@@ -22,7 +32,7 @@ func (s *ApiServer) HandleTransfer(w http.ResponseWriter, r *http.Request) error
 /*
 handleTransfer is the controller that handles the POST /transfer endpoint.
 */
-func (s *ApiServer) handleCreateTransaction(w http.ResponseWriter, r *http.Request) error {
+func (s *TransactionHandler) handleCreateTransaction(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.CreateTransactionDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {

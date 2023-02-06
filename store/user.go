@@ -53,7 +53,7 @@ func (s *UserStore) GetUserByEmail(email string) (*types.User, error) {
 	return user, nil
 }
 
-func (s *UserStore) GetUserBydID(id uint) (*types.User, error) {
+func (s *UserStore) GetUserByID(id uint) (*types.User, error) {
 	query := `SELECT * FROM "user" WHERE id = $1`
 
 	row := s.db.QueryRow(query, id)

@@ -1,14 +1,12 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/farischt/gobank/store"
 	"github.com/gorilla/mux"
 )
 
@@ -74,44 +72,6 @@ func makeHTTPFunc(f apiFunc) http.HandlerFunc {
 }
 
 /*
-ApiServer is the API server.
-*/
-type ApiServer struct {
-	listenAddr string
-	store      store.Store
-}
-
-/*
-NewApiServer creates a new instance of API server.
-*/
-func NewApiServer(l string, s store.Store) *ApiServer {
-	return &ApiServer{
-		listenAddr: l,
-		store:      s,
-	}
-}
-
-/*
-Start starts the API server.
-*/
-func (s *ApiServer) Start() {
-	router := mux.NewRouter()
-
-	router.HandleFunc("/user", makeHTTPFunc(s.HandleUser))
-	router.HandleFunc("/auth/login", WithoutAuth(makeHTTPFunc(s.HandleLogin)))
-	router.HandleFunc("/account", makeHTTPFunc(s.HandleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPFunc(s.HandleUniqueAccount))
-	router.HandleFunc("/transfer", WithAuth(makeHTTPFunc(s.HandleTransfer)))
-
-	log.Println("Server up and running on port ", s.listenAddr)
-	err := http.ListenAndServe(s.listenAddr, router)
-
-	if err != nil { 
-		log.Fatal(err)
-	}
-}
-
-/*
 WriteJSON is a helper function to write JSON response.
 It will set the content-type to application/json and write the status code.
 It returns an error if the encoding fails.
@@ -155,3 +115,4 @@ func GetIntParameter(r *http.Request, param string) (uint, error) {
 
 	return uint(parsedParameter), nil
 }
+

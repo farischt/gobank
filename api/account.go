@@ -1,16 +1,25 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"net/http"
 
 	"github.com/farischt/gobank/dto"
+	"github.com/farischt/gobank/store"
 )
+
+type AccountHandler struct {
+	store store.Store
+}
+
+func NewAccountHandler(store store.Store) *AccountHandler {
+	return &AccountHandler{store: store}
+}
 
 /*
 handleAccount routes the request to the appropriate handler for /account endpoint.
 */
-func (s *ApiServer) HandleAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) HandleAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
 		return s.handleGetAccounts(w, r)
@@ -24,7 +33,7 @@ func (s *ApiServer) HandleAccount(w http.ResponseWriter, r *http.Request) error 
 /*
 handleUniqueAccount routes the request to the appropriate handler for /account/{id} endpoint.
 */
-func (s *ApiServer) HandleUniqueAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) HandleUniqueAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
 		return s.handleGetAccount(w, r)
@@ -40,7 +49,7 @@ func (s *ApiServer) HandleUniqueAccount(w http.ResponseWriter, r *http.Request) 
 /*
 handleGetAccounts is the controller that handles the GET /account endpoint.
 */
-func (s *ApiServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
 	accounts, err := s.store.Account.GetAllAccount()
 	if err != nil {
 		return err
@@ -52,7 +61,7 @@ func (s *ApiServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) er
 /*
 handleCreateAccount is the controller that handles the POST /account endpoint.
 */
-func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.CreateAccountDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -65,7 +74,7 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// check if user exists
-	user, err := s.store.User.GetUserBydID(data.UserID)
+	user, err := s.store.User.GetUserByID(data.UserID)
 	if err != nil {
 		if err.Error() == "user_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -85,7 +94,7 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 /*
 handleGetAccount is the controller that handles the GET /account/{id} endpoint.
 */
-func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
 	id, err := GetIntParameter(r, "id")
 	if err != nil {
 		return err
@@ -105,7 +114,7 @@ func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 /*
 handleDeleteAccount is the controller that handles the DELETE /account/{id} endpoint.
 */
-func (s *ApiServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
 	id, err := GetIntParameter(r, "id")
 	if err != nil {
 		return err
