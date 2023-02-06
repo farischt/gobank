@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/farischt/gobank/dto"
 )
 
 /*
@@ -23,7 +25,7 @@ func (s *ApiServer) HandleUser(w http.ResponseWriter, r *http.Request) error {
 handleCreateUser is the controller that handles the POST /user endpoint.
 */
 func (s *ApiServer) handleCreateUser(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateUserDTO)
+	data := new(dto.CreateUserDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		return NewApiError(http.StatusBadRequest, "invalid_request_body")
@@ -38,12 +40,12 @@ func (s *ApiServer) handleCreateUser(w http.ResponseWriter, r *http.Request) err
 		return NewApiError(http.StatusBadRequest, "empty_email")
 	}
 
-	exist, err := s.store.GetUserByEmail(data.Email)
+	exist, err := s.store.User.GetUserByEmail(data.Email)
 	if err == nil && exist != nil {
 		return NewApiError(http.StatusBadRequest, "email_already_exist")
 	}
 
-	err = s.store.CreateUser(data)
+	err = s.store.User.CreateUser(data)
 	if err != nil {
 		return err
 	}

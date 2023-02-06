@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/farischt/gobank/store"
 	"github.com/gorilla/mux"
 )
 
@@ -50,17 +51,40 @@ func NewApiResponse(s int, d interface{}, r *http.Request) ApiResponse {
 }
 
 /*
+apiFunc is a function that handles an API request.
+It returns an error if the request fails.
+*/
+type apiFunc func(http.ResponseWriter, *http.Request) error
+
+/*
+makeHTTPFunc is a helper function to convert an apiFunc to http.HandlerFunc.
+It returns an http.HandlerFunc that will write the error as JSON response.
+*/
+func makeHTTPFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := f(w, r)
+		if err != nil {
+			if e, ok := err.(ApiError); ok {
+				_ = WriteJSON(w, e.Status, e)
+				return
+			}
+			_ = WriteJSON(w, http.StatusInternalServerError, NewApiError(http.StatusInternalServerError, err.Error()))
+		}
+	}
+}
+
+/*
 ApiServer is the API server.
 */
 type ApiServer struct {
 	listenAddr string
-	store      Storage
+	store      store.Store
 }
 
 /*
 NewApiServer creates a new instance of API server.
 */
-func NewApiServer(l string, s Storage) *ApiServer {
+func NewApiServer(l string, s store.Store) *ApiServer {
 	return &ApiServer{
 		listenAddr: l,
 		store:      s,
@@ -96,29 +120,6 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
-}
-
-/*
-apiFunc is a function that handles an API request.
-It returns an error if the request fails.
-*/
-type apiFunc func(http.ResponseWriter, *http.Request) error
-
-/*
-makeHTTPFunc is a helper function to convert an apiFunc to http.HandlerFunc.
-It returns an http.HandlerFunc that will write the error as JSON response.
-*/
-func makeHTTPFunc(f apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := f(w, r)
-		if err != nil {
-			if e, ok := err.(ApiError); ok {
-				_ = WriteJSON(w, e.Status, e)
-				return
-			}
-			_ = WriteJSON(w, http.StatusInternalServerError, NewApiError(http.StatusInternalServerError, err.Error()))
-		}
-	}
 }
 
 /*

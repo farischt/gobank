@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/farischt/gobank/config"
+	"github.com/farischt/gobank/dto"
+	"github.com/farischt/gobank/types"
 	jwt "github.com/golang-jwt/jwt/v4"
 )
 
@@ -24,7 +26,7 @@ handleCreateToken is the controller that handles the POST /auth/login endpoint.
 It creates a new token for the user.
 */
 func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) error {
-	data := new(LoginDTO)
+	data := new(dto.LoginDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		return NewApiError(http.StatusBadRequest, "invalid_request_body")
@@ -36,7 +38,7 @@ func (s *ApiServer) handleCreateToken(w http.ResponseWriter, r *http.Request) er
 	}
 
 	// Check if the account exists
-	a, err := s.store.GetAccount(data.AccountNumber)
+	a, err := s.store.Account.GetAccount(data.AccountNumber)
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -122,7 +124,7 @@ createAuthToken is a function to create a token.
 It takes an account and a user as input.
 It returns the token and an error.
 */
-func createAuthToken(account *Account) (string, error) {
+func createAuthToken(account *types.Account) (string, error) {
 	claims := jwt.MapClaims{
 		"expires_at": 150000,
 		"account_id": account.ID,

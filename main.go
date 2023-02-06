@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/farischt/gobank/config"
+	"github.com/farischt/gobank/store"
 )
 
 func init() {
@@ -18,12 +19,12 @@ func init() {
 
 func main() {
 	port := ":" + config.GetConfig().GetString("PORT")
-	storage, err := NewPgStorage()
+	storage, err := store.NewPgStore()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s := NewApiServer(port, storage)
+	s := NewApiServer(port, *storage)
 	s.Start()
 }

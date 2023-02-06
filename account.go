@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/farischt/gobank/dto"
 )
 
 /*
@@ -39,7 +41,7 @@ func (s *ApiServer) HandleUniqueAccount(w http.ResponseWriter, r *http.Request) 
 handleGetAccounts is the controller that handles the GET /account endpoint.
 */
 func (s *ApiServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetAllAccount()
+	accounts, err := s.store.Account.GetAllAccount()
 	if err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ func (s *ApiServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) er
 handleCreateAccount is the controller that handles the POST /account endpoint.
 */
 func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateAccountDTO)
+	data := new(dto.CreateAccountDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		return NewApiError(http.StatusBadRequest, "invalid_request_body")
@@ -63,7 +65,7 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// check if user exists
-	user, err := s.store.GetUserBydID(data.UserID)
+	user, err := s.store.User.GetUserBydID(data.UserID)
 	if err != nil {
 		if err.Error() == "user_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -72,7 +74,7 @@ func (s *ApiServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 	data.UserID = user.ID
 
-	err = s.store.CreateAccount(data)
+	err = s.store.Account.CreateAccount(data)
 	if err != nil {
 		return err
 	}
@@ -89,7 +91,7 @@ func (s *ApiServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	a, err := s.store.GetAccount(id)
+	a, err := s.store.Account.GetAccount(id)
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -109,7 +111,7 @@ func (s *ApiServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	account, err := s.store.GetAccount(id)
+	account, err := s.store.Account.GetAccount(id)
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -117,7 +119,7 @@ func (s *ApiServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	err = s.store.DeleteAccount(id)
+	err = s.store.Account.DeleteAccount(id)
 	if err != nil {
 		return err
 	}
