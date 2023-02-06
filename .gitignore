@@ -17,3 +17,8 @@ gobank
 *.out
 *.dll
 *.APP
+
+# Ignore env files
+.env.dev
+.env.prod
+.env.*.postgres

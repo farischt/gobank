@@ -1,12 +1,24 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/farischt/gobank/dto"
+	"github.com/farischt/gobank/store"
 )
 
-func (s *ApiServer) HandleTransfer(w http.ResponseWriter, r *http.Request) error {
+
+type TransactionHandler struct {
+	store store.Store
+}
+
+func NewTransactionHandler(store store.Store) *TransactionHandler {
+	return &TransactionHandler{store: store}
+}
+
+func (s *TransactionHandler) HandleTransfer(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
 		return s.handleCreateTransaction(w, r)
@@ -20,8 +32,8 @@ func (s *ApiServer) HandleTransfer(w http.ResponseWriter, r *http.Request) error
 /*
 handleTransfer is the controller that handles the POST /transfer endpoint.
 */
-func (s *ApiServer) handleCreateTransaction(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateTransactionDTO)
+func (s *TransactionHandler) handleCreateTransaction(w http.ResponseWriter, r *http.Request) error {
+	data := new(dto.CreateTransactionDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		return NewApiError(http.StatusBadRequest, "invalid_request_body")
@@ -36,7 +48,7 @@ func (s *ApiServer) handleCreateTransaction(w http.ResponseWriter, r *http.Reque
 
 	id := GetAuthenticatedAccountId(r)
 
-	fromAccount, err := s.store.GetAccount(*id)
+	fromAccount, err := s.store.Account.GetAccount(*id)
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, "from_account_not_found")
@@ -45,7 +57,7 @@ func (s *ApiServer) handleCreateTransaction(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Check if the to account exists
-	toAccount, err := s.store.GetAccount(data.To)
+	toAccount, err := s.store.Account.GetAccount(data.To)
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, "to_account_not_found")
@@ -68,7 +80,7 @@ func (s *ApiServer) handleCreateTransaction(w http.ResponseWriter, r *http.Reque
 	toAccountBalance, _ := strconv.ParseFloat(string(toAccount.Balance), 64)
 	toBalance := toAccountBalance + data.Amount
 
-	err = s.store.CreateTxnAndUpdateBalance(fromAccount, toAccount, fromBalance, toBalance, data)
+	err = s.store.Transaction.CreateTxnAndUpdateBalance(fromAccount, toAccount, fromBalance, toBalance, data)
 	if err != nil {
 		return err
 	}

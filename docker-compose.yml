@@ -1,4 +1,3 @@
-# postgres with adminer
 version: "3.4"
 
 services:
@@ -17,17 +16,12 @@ services:
       - gobank
 
   postgres:
+    env_file:
+      - ./.env.dev.postgres
     container_name: gobank-database
     image: postgres
     environment:
       PGDATA: /data/postgres
-      POSTGRES_HOSTNAME_ORM: localhost
-      POSTGRES_HOSTNAME: localhost
-      POSTGRES_USER: gobank
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: gobank-db
-      POSTGRES_PORT: 5432
-
     volumes:
       - postgres:/data/postgres
     ports:

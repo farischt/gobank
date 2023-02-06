@@ -1,29 +1,32 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/farischt/gobank/dto"
+	"github.com/farischt/gobank/store"
 )
 
-/*
-handleUser routes the request to the appropriate handler for /user endpoint.
-*/
-func (s *ApiServer) HandleUser(w http.ResponseWriter, r *http.Request) error {
+type UserHandler struct {
+	store store.Store
+}
+
+func NewUserHandler(store store.Store) *UserHandler {
+	return &UserHandler{store: store}
+}
+
+func (u *UserHandler) HandleUser(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
-		return s.handleCreateUser(w, r)
+		return u.handleCreateUser(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
 }
 
-/* ------------------------------- Controller ------------------------------- */
-
-/*
-handleCreateUser is the controller that handles the POST /user endpoint.
-*/
-func (s *ApiServer) handleCreateUser(w http.ResponseWriter, r *http.Request) error {
-	data := new(CreateUserDTO)
+func (u *UserHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) error {
+	data := new(dto.CreateUserDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		return NewApiError(http.StatusBadRequest, "invalid_request_body")
@@ -38,12 +41,12 @@ func (s *ApiServer) handleCreateUser(w http.ResponseWriter, r *http.Request) err
 		return NewApiError(http.StatusBadRequest, "empty_email")
 	}
 
-	exist, err := s.store.GetUserByEmail(data.Email)
+	exist, err := u.store.User.GetUserByEmail(data.Email)
 	if err == nil && exist != nil {
 		return NewApiError(http.StatusBadRequest, "email_already_exist")
 	}
 
-	err = s.store.CreateUser(data)
+	err = u.store.User.CreateUser(data)
 	if err != nil {
 		return err
 	}

@@ -11,16 +11,16 @@ build:
 
 ## run: Run the web server in development mode.
 run: build
-	@./bin/$(NAME) -e development
+	@./bin/$(NAME) -e dev
 
 ## dev: Run the web server in development mode with a watcher.
 ## make sure to have https://github.com/githubnemo/CompileDaemon in your device
 dev:
-	@CompileDaemon -command="./$(NAME) -e development" -exclude-dir=.git -include=Makefile -include="*.json"
+	@CompileDaemon -command="./$(NAME) -e dev" -exclude-dir=.git -include=Makefile -include="*.json"
 
 ## start: Run the web server in production mode.
 start: 
-	@./bin/$(NAME) -e production
+	@./bin/$(NAME) -e prod
 
 ## clean: Remove previous build.
 clean:
