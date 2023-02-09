@@ -42,7 +42,6 @@ func (a *Account) Serialize() SerializedAccount {
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
 		User:      serializedUser,
-		//User: a.User,
 	}
 }
 

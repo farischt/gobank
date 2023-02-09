@@ -18,14 +18,14 @@ func NewAccountHandler(store store.Store) *AccountHandler {
 }
 
 /*
-handleAccount routes the request to the appropriate handler for /account endpoint.
+HandleAccount routes the request to the appropriate handler for /account endpoint.
 */
 func (s *AccountHandler) HandleAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleGetAccounts(w, r)
+		return s.getAccounts(w, r)
 	case "POST":
-		return s.handleCreateAccount(w, r)
+		return s.createAccount(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
@@ -37,9 +37,9 @@ handleUniqueAccount routes the request to the appropriate handler for /account/{
 func (s *AccountHandler) HandleUniqueAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleGetAccount(w, r)
+		return s.getAccount(w, r)
 	case "DELETE":
-		return s.handleDeleteAccount(w, r)
+		return s.deleteAccount(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
@@ -48,9 +48,9 @@ func (s *AccountHandler) HandleUniqueAccount(w http.ResponseWriter, r *http.Requ
 /* ------------------------------- Controller ------------------------------- */
 
 /*
-handleGetAccounts is the controller that handles the GET /account endpoint.
+getAccounts is the controller method that handles the GET /account endpoint.
 */
-func (s *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) getAccounts(w http.ResponseWriter, r *http.Request) error {
 	accounts, err := s.store.Account.GetAllAccount()
 	if err != nil {
 		return err
@@ -60,9 +60,9 @@ func (s *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Reques
 }
 
 /*
-handleCreateAccount is the controller that handles the POST /account endpoint.
+createAccount is the controller method that handles the POST /account endpoint.
 */
-func (s *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) createAccount(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.CreateAccountDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -93,9 +93,9 @@ func (s *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 }
 
 /*
-handleGetAccount is the controller that handles the GET /account/{id} endpoint.
+getAccount is the controller method that handles the GET /account/{id} endpoint.
 */
-func (s *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) getAccount(w http.ResponseWriter, r *http.Request) error {
 	id, err := GetIntParameter(r, "id")
 	if err != nil {
 		return NewApiError(http.StatusBadRequest, "missing_account_id")
@@ -126,9 +126,9 @@ func (s *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request
 }
 
 /*
-handleDeleteAccount is the controller that handles the DELETE /account/{id} endpoint.
+deleteAccount is the controller method that handles the DELETE /account/{id} endpoint.
 */
-func (s *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *AccountHandler) deleteAccount(w http.ResponseWriter, r *http.Request) error {
 	id, err := GetIntParameter(r, "id")
 	if err != nil {
 		return err

@@ -6,9 +6,10 @@ import (
 )
 
 type Store struct {
-	User        UserStore
-	Account     AccountStore
-	Transaction TransactionStore
+	User         UserStorer
+	Account      AccountStorer
+	Transaction  TransactionStorer
+	SessionToken SessionTokenStorer
 }
 
 func NewPgStore() (*Store, error) {
@@ -22,8 +23,9 @@ func NewPgStore() (*Store, error) {
 	}
 
 	return &Store{
-		User:        *NewUser(db),
-		Account:     *NewAccount(db),
-		Transaction: *NewTransaction(db),
+		User:         NewUser(db),
+		Account:      NewAccount(db),
+		Transaction:  NewTransaction(db),
+		SessionToken: NewSessionToken(db),
 	}, nil
 }

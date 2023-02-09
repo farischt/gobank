@@ -54,6 +54,10 @@ func (s *UserStore) GetUserByEmail(email string) (*types.User, error) {
 	return user, nil
 }
 
+/*
+GetUserByID is a method to get a user by id.
+It takes an id and returns a User and an error.
+*/
 func (s *UserStore) GetUserByID(id uint) (*types.User, error) {
 	query := `SELECT * FROM "user" WHERE id = $1`
 
