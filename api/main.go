@@ -9,17 +9,17 @@ import (
 )
 
 type Handlers struct {
-	User *UserHandler
-	Account *AccountHandler
-	Transaction *TransactionHandler
+	User           *UserHandler
+	Account        *AccountHandler
+	Transaction    *TransactionHandler
 	Authentication *AuthenticationHandler
 }
 
 func NewHandlers(store store.Store) *Handlers {
 	return &Handlers{
-		User: NewUserHandler(store),
-		Account: NewAccountHandler(store),
-		Transaction: NewTransactionHandler(store),
+		User:           NewUserHandler(store),
+		Account:        NewAccountHandler(store),
+		Transaction:    NewTransactionHandler(store),
 		Authentication: NewAuthenticationHandler(store),
 	}
 }
@@ -50,11 +50,12 @@ Start starts the API server.
 func (s *ApiServer) Start() {
 	router := mux.NewRouter()
 
-	 router.HandleFunc("/user", makeHTTPFunc(s.handlers.User.HandleUser))
-	 router.HandleFunc("/auth/login", WithoutAuth(makeHTTPFunc(s.handlers.Authentication.HandleLogin)))
-	 router.HandleFunc("/account", makeHTTPFunc(s.handlers.Account.HandleAccount))
-	 router.HandleFunc("/account/{id}", makeHTTPFunc(s.handlers.Account.HandleUniqueAccount))
-	 router.HandleFunc("/transfer", WithAuth(makeHTTPFunc(s.handlers.Transaction.HandleTransfer)))
+	router.HandleFunc("/user", makeHTTPFunc(s.handlers.User.HandleUser))
+	router.HandleFunc("/user/{id}", makeHTTPFunc(s.handlers.User.HandleUniqueUser))
+	router.HandleFunc("/auth/login", WithoutAuth(makeHTTPFunc(s.handlers.Authentication.HandleLogin)))
+	router.HandleFunc("/account", makeHTTPFunc(s.handlers.Account.HandleAccount))
+	router.HandleFunc("/account/{id}", makeHTTPFunc(s.handlers.Account.HandleUniqueAccount))
+	router.HandleFunc("/transfer", WithAuth(makeHTTPFunc(s.handlers.Transaction.HandleTransfer)))
 
 	log.Println("Server up and running on port", s.listenAddr[1:])
 	err := http.ListenAndServe(s.listenAddr, router)
@@ -63,4 +64,3 @@ func (s *ApiServer) Start() {
 		log.Fatal(err)
 	}
 }
-

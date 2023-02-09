@@ -1,21 +1,19 @@
 package store
 
 import (
-	"database/sql"
-
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-
 type Store struct {
-	User UserStore 
-	Account AccountStore
+	User        UserStore
+	Account     AccountStore
 	Transaction TransactionStore
 }
 
-func NewPgStore() (*Store, error ){
+func NewPgStore() (*Store, error) {
 	url := getPgConnectionStr()
-	db, err := sql.Open("postgres", url)
+	db, err := sqlx.Connect("postgres", url)
 
 	if err != nil {
 		return nil, err
@@ -24,8 +22,8 @@ func NewPgStore() (*Store, error ){
 	}
 
 	return &Store{
-		User: *NewUser(db),
-		Account: *NewAccount(db),
+		User:        *NewUser(db),
+		Account:     *NewAccount(db),
 		Transaction: *NewTransaction(db),
 	}, nil
 }
