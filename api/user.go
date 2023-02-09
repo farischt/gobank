@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/farischt/gobank/dto"
@@ -77,7 +76,7 @@ func (u *UserHandler) handleGetUserById(w http.ResponseWriter, r *http.Request) 
 
 	user, err := u.store.User.GetUserByID(id)
 	if err != nil {
-		log.Println("error: ", err)
+
 		return err
 	}
 

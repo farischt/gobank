@@ -3,7 +3,6 @@ package store
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/farischt/gobank/dto"
@@ -104,7 +103,6 @@ func (s *AccountStore) GetAllAccount() ([]*types.Account, error) {
 	rows, err := s.db.Queryx(query, 0, 10)
 
 	if err != nil {
-		log.Println("here", err)
 		return nil, err
 	}
 
@@ -114,7 +112,6 @@ func (s *AccountStore) GetAllAccount() ([]*types.Account, error) {
 		account := new(types.Account)
 		err := rows.StructScan(account)
 		if err != nil {
-			log.Println("here 2", err)
 			return nil, err
 		}
 
