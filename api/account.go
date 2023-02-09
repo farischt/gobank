@@ -6,6 +6,7 @@ import (
 
 	"github.com/farischt/gobank/dto"
 	"github.com/farischt/gobank/store"
+	"github.com/farischt/gobank/types"
 )
 
 type AccountHandler struct {
@@ -55,7 +56,7 @@ func (s *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Reques
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, accounts, r))
+	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, types.SerializeAccounts(accounts), r))
 }
 
 /*
@@ -97,10 +98,23 @@ handleGetAccount is the controller that handles the GET /account/{id} endpoint.
 func (s *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
 	id, err := GetIntParameter(r, "id")
 	if err != nil {
-		return err
+		return NewApiError(http.StatusBadRequest, "missing_account_id")
 	}
 
-	a, err := s.store.Account.GetAccount(id)
+	if id <= 0 {
+		return NewApiError(http.StatusBadRequest, "invalid_account_id")
+	}
+
+	var a *types.Account
+	param := r.URL.Query()
+	_, exist := param["user"]
+
+	if exist {
+		a, err = s.store.Account.GetAccountWithUser(id)
+	} else {
+		a, err = s.store.Account.GetAccount(id)
+	}
+
 	if err != nil {
 		if err.Error() == "account_not_found" {
 			return NewApiError(http.StatusNotFound, err.Error())
@@ -108,7 +122,7 @@ func (s *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, a, r))
+	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, a.Serialize(), r))
 }
 
 /*
