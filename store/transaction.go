@@ -16,6 +16,10 @@ func NewTransaction(db *sqlx.DB) *TransactionStore {
 	return &TransactionStore{db: db}
 }
 
+/*
+CreateTxn creates a new transaction.
+It returns an error if any.
+*/
 func (s *TransactionStore) CreateTxn(from uint, data *dto.CreateTransactionDTO) error {
 	query := `INSERT INTO transaction (from_id, to_id, amount) VALUES ($1, $2, $3)`
 	_, err := s.db.Exec(
@@ -27,6 +31,10 @@ func (s *TransactionStore) CreateTxn(from uint, data *dto.CreateTransactionDTO) 
 	return err
 }
 
+/*
+CreateTxnAndUpdateBalance creates a new transaction and updates the balance of the from and to account within a sql transaction.
+It returns an error if any
+*/
 func (s *TransactionStore) CreateTxnAndUpdateBalance(from *types.Account, to *types.Account, fromFinalBalance float64, toFinalBalance float64, data *dto.CreateTransactionDTO) error {
 	// Start transaction
 	tx, err := s.db.Begin()

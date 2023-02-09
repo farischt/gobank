@@ -16,25 +16,34 @@ func NewUserHandler(store store.Store) *UserHandler {
 	return &UserHandler{store: store}
 }
 
+/*
+HandleUser routes the request to the appropriate handler for /user endpoint.
+*/
 func (u *UserHandler) HandleUser(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
-		return u.handleCreateUser(w, r)
+		return u.createUser(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
 }
 
+/*
+HandleUniqueUser routes the request to the appropriate handler for /user/{id} endpoint.
+*/
 func (u *UserHandler) HandleUniqueUser(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return u.handleGetUserById(w, r)
+		return u.getUserById(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
 }
 
-func (u *UserHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) error {
+/*
+createUser is the controller method that handles the POST /user endpoint.
+*/
+func (u *UserHandler) createUser(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.CreateUserDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -63,7 +72,10 @@ func (u *UserHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) e
 	return WriteJSON(w, http.StatusCreated, NewApiResponse(http.StatusCreated, data, r))
 }
 
-func (u *UserHandler) handleGetUserById(w http.ResponseWriter, r *http.Request) error {
+/*
+getUserById is the controller method that handles the GET /user/{id} endpoint.
+*/
+func (u *UserHandler) getUserById(w http.ResponseWriter, r *http.Request) error {
 	id, err := GetIntParameter(r, "id")
 
 	if err != nil {

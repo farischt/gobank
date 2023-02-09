@@ -9,7 +9,6 @@ import (
 	"github.com/farischt/gobank/store"
 )
 
-
 type TransactionHandler struct {
 	store store.Store
 }
@@ -18,10 +17,13 @@ func NewTransactionHandler(store store.Store) *TransactionHandler {
 	return &TransactionHandler{store: store}
 }
 
+/*
+HandleTransfer routes the request to the appropriate handler for /transfer endpoint.
+*/
 func (s *TransactionHandler) HandleTransfer(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
-		return s.handleCreateTransaction(w, r)
+		return s.createTransaction(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
@@ -32,7 +34,7 @@ func (s *TransactionHandler) HandleTransfer(w http.ResponseWriter, r *http.Reque
 /*
 handleTransfer is the controller that handles the POST /transfer endpoint.
 */
-func (s *TransactionHandler) handleCreateTransaction(w http.ResponseWriter, r *http.Request) error {
+func (s *TransactionHandler) createTransaction(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.CreateTransactionDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -46,7 +48,7 @@ func (s *TransactionHandler) handleCreateTransaction(w http.ResponseWriter, r *h
 		return NewApiError(http.StatusBadRequest, "invalid_to_account_id")
 	}
 
-	id := GetAuthenticatedAccountId(r)
+	id := GetAuthenticatedAccountId(r, s.store)
 
 	fromAccount, err := s.store.Account.GetAccount(*id)
 	if err != nil {
