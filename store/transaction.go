@@ -1,18 +1,18 @@
 package store
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/farischt/gobank/dto"
 	"github.com/farischt/gobank/types"
+	"github.com/jmoiron/sqlx"
 )
 
 type TransactionStore struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewTransaction(db *sql.DB) *TransactionStore {
+func NewTransaction(db *sqlx.DB) *TransactionStore {
 	return &TransactionStore{db: db}
 }
 

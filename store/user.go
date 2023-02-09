@@ -6,13 +6,14 @@ import (
 
 	"github.com/farischt/gobank/dto"
 	"github.com/farischt/gobank/types"
+	"github.com/jmoiron/sqlx"
 )
 
 type UserStore struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewUser(db *sql.DB) *UserStore {
+func NewUser(db *sqlx.DB) *UserStore {
 	return &UserStore{db: db}
 }
 
@@ -39,8 +40,8 @@ It takes an email and returns a User and an error.
 func (s *UserStore) GetUserByEmail(email string) (*types.User, error) {
 	query := `SELECT * FROM "user" WHERE email = $1`
 
-	row := s.db.QueryRow(query, email)
-	user, err := scanUser(row)
+	user := new(types.User)
+	err := s.db.QueryRowx(query, email).StructScan(user)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -56,10 +57,11 @@ func (s *UserStore) GetUserByEmail(email string) (*types.User, error) {
 func (s *UserStore) GetUserByID(id uint) (*types.User, error) {
 	query := `SELECT * FROM "user" WHERE id = $1`
 
-	row := s.db.QueryRow(query, id)
-	user, err := scanUser(row)
+	user := new(types.User)
+	err := s.db.QueryRowx(query, id).StructScan(user)
 
 	if err != nil {
+
 		if err == sql.ErrNoRows {
 			return nil, errors.New("user_not_found")
 		}
@@ -68,14 +70,4 @@ func (s *UserStore) GetUserByID(id uint) (*types.User, error) {
 	}
 
 	return user, nil
-}
-
-/*
-scanUser is a helper function to scan a row into an User.
-It takes a row and returns an Account and an error.
-*/
-func scanUser(row *sql.Row) (*types.User, error) {
-	a := new(types.User)
-	err := row.Scan(&a.ID, &a.FirstName, &a.LastName, &a.Email, &a.CreatedAt, &a.UpdatedAt)
-	return a, err
 }
