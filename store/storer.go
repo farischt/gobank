@@ -26,7 +26,7 @@ type TransactionStorer interface {
 }
 
 type SessionTokenStorer interface {
-	CreateSessionToken(accountId uint) (string, error)
+	CreateSessionToken(accountId uint) (*types.SessionToken, error)
 	GetSessionToken(token string) (*types.SessionToken, error)
 	DeleteSessionToken(token string) error
 	IsValidSessionToken(token string) (uint, bool)

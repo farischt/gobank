@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/farischt/gobank/config"
+	"github.com/farischt/gobank/services"
 	"github.com/farischt/gobank/store"
 	"github.com/gorilla/mux"
 )
@@ -16,12 +17,12 @@ type Handlers struct {
 	Authentication *AuthenticationHandler
 }
 
-func NewHandlers(store store.Store) *Handlers {
+func NewHandlers(service *services.Service) *Handlers {
 	return &Handlers{
-		User:           NewUserHandler(store),
-		Account:        NewAccountHandler(store),
-		Transaction:    NewTransactionHandler(store),
-		Authentication: NewAuthenticationHandler(store),
+		User:           NewUserHandler(service),
+		Account:        NewAccountHandler(service),
+		Transaction:    NewTransactionHandler(service),
+		Authentication: NewAuthenticationHandler(service),
 	}
 }
 
@@ -30,7 +31,7 @@ ApiServer is the API server.
 */
 type ApiServer struct {
 	listenAddr string
-	store      store.Store
+	service    *services.Service
 	handlers   *Handlers
 }
 
@@ -38,10 +39,12 @@ type ApiServer struct {
 NewApiServer creates a new instance of API server.
 */
 func New(l string, s store.Store) *ApiServer {
+	services := services.New(s)
+
 	return &ApiServer{
 		listenAddr: l,
-		store:      s,
-		handlers:   NewHandlers(s),
+		service:    services,
+		handlers:   NewHandlers(services),
 	}
 }
 
@@ -79,7 +82,7 @@ func (s *ApiServer) WithAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		_, validToken := s.store.SessionToken.IsValidSessionToken(token)
+		_, validToken := s.service.Session.IsValidSessionToken(token)
 
 		if !validToken {
 			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "invalid_token"))
@@ -108,19 +111,4 @@ func (s *ApiServer) WithoutAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		// Equivalent to next() in express
 		handlerFunc(w, r)
 	}
-}
-
-/*
-GetAuthenticatedAccountId is a function to get the authenticated account id from the jwt token.
-*/
-func GetAuthenticatedAccountId(r *http.Request, s store.Store) *uint {
-	token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
-
-	t, ok := s.SessionToken.IsValidSessionToken(token)
-
-	if ok {
-		return &t
-	}
-
-	return nil
 }

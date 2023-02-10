@@ -1,6 +1,8 @@
 package store
 
 import (
+	"log"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -12,7 +14,7 @@ type Store struct {
 	SessionToken SessionTokenStorer
 }
 
-func NewPgStore() (*Store, error) {
+func NewPostgres() (*Store, error) {
 	url := getPgConnectionStr()
 	db, err := sqlx.Connect("postgres", url)
 
@@ -21,6 +23,8 @@ func NewPgStore() (*Store, error) {
 	} else if err := db.Ping(); err != nil {
 		return nil, err
 	}
+
+	log.Println("Succesfully connected to postgres database")
 
 	return &Store{
 		User:         NewUser(db),
