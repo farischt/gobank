@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/farischt/gobank/config"
 	"github.com/gorilla/mux"
 )
 
@@ -116,3 +117,11 @@ func GetIntParameter(r *http.Request, param string) (uint, error) {
 	return uint(parsedParameter), nil
 }
 
+func GetTokenFromHeader(r *http.Request) (string, error) {
+	token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
+	if token == "" {
+		return "", NewApiError(http.StatusUnauthorized, "missing_token")
+	}
+
+	return token, nil
+}

@@ -23,7 +23,7 @@ func NewSessionToken(db *sqlx.DB) *SessionTokenStore {
 CreateSessionToken creates a new session token for the given account id.
 It returns the token id and an error if any.
 */
-func (s *SessionTokenStore) CreateSessionToken(accountId uint) (string, error) {
+func (s *SessionTokenStore) CreateSessionToken(accountId uint) (*types.SessionToken, error) {
 	token := new(types.SessionToken)
 	query := `INSERT INTO session_token (account_id) VALUES ($1) RETURNING *`
 	// _, _ = s.db.NamedQuery(query, accountId)
@@ -31,10 +31,10 @@ func (s *SessionTokenStore) CreateSessionToken(accountId uint) (string, error) {
 	err := s.db.QueryRowx(query, accountId).StructScan(token)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return token.ID, nil
+	return token, nil
 }
 
 /*
@@ -77,5 +77,5 @@ func (s *SessionTokenStore) IsValidSessionToken(token string) (uint, bool) {
 	}
 
 	elapsed := time.Since(st.CreatedAt)
-	return st.AccountId, elapsed <= time.Second*10
+	return st.AccountId, elapsed <= time.Second*1000
 }

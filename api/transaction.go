@@ -3,18 +3,19 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/store"
+	"github.com/farischt/gobank/services"
 )
 
 type TransactionHandler struct {
-	store store.Store
+	service *services.Service
 }
 
-func NewTransactionHandler(store store.Store) *TransactionHandler {
-	return &TransactionHandler{store: store}
+func NewTransactionHandler(service *services.Service) *TransactionHandler {
+	return &TransactionHandler{
+		service: service,
+	}
 }
 
 /*
@@ -42,48 +43,19 @@ func (s *TransactionHandler) createTransaction(w http.ResponseWriter, r *http.Re
 	}
 	defer r.Body.Close()
 
-	if data.Amount <= 0 {
-		return NewApiError(http.StatusBadRequest, "invalid_amount")
-	} else if data.To == 0 {
-		return NewApiError(http.StatusBadRequest, "invalid_to_account_id")
-	}
-
-	id := GetAuthenticatedAccountId(r, s.store)
-
-	fromAccount, err := s.store.Account.GetAccount(*id)
+	tokenId, err := GetTokenFromHeader(r)
 	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, "from_account_not_found")
-		}
 		return err
 	}
 
-	// Check if the to account exists
-	toAccount, err := s.store.Account.GetAccount(data.To)
+	token, ok := s.service.Session.IsValidSessionToken(tokenId)
+	if !ok {
+		return NewApiError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	err = s.service.Transaction.Transfer(token.AccountId, data)
 	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, "to_account_not_found")
-		}
-		return err
-	}
-
-	if fromAccount.ID == toAccount.ID {
-		return NewApiError(http.StatusBadRequest, "cannot_transfer_to_same_account")
-	}
-
-	balance, _ := strconv.ParseFloat(string(fromAccount.Balance), 64)
-	if balance < data.Amount {
-		return NewApiError(http.StatusBadRequest, "insufficient_balance")
-	}
-
-	// Update the balance of the from account
-	fromBalance := balance - data.Amount
-
-	toAccountBalance, _ := strconv.ParseFloat(string(toAccount.Balance), 64)
-	toBalance := toAccountBalance + data.Amount
-
-	err = s.store.Transaction.CreateTxnAndUpdateBalance(fromAccount, toAccount, fromBalance, toBalance, data)
-	if err != nil {
+		// TODO: Handle error to return appropriate error code
 		return err
 	}
 

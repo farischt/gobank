@@ -5,15 +5,17 @@ import (
 	"net/http"
 
 	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/store"
+	"github.com/farischt/gobank/services"
 )
 
 type AuthenticationHandler struct {
-	store store.Store
+	service *services.Service
 }
 
-func NewAuthenticationHandler(store store.Store) *AuthenticationHandler {
-	return &AuthenticationHandler{store: store}
+func NewAuthenticationHandler(service *services.Service) *AuthenticationHandler {
+	return &AuthenticationHandler{
+		service: service,
+	}
 }
 
 /*
@@ -38,23 +40,9 @@ func (h *AuthenticationHandler) createToken(w http.ResponseWriter, r *http.Reque
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
 		return NewApiError(http.StatusBadRequest, "invalid_request_body")
 	}
-	//defer r.Body.Close()
+	defer r.Body.Close()
 
-	if data.AccountNumber <= 0 {
-		return NewApiError(http.StatusBadRequest, "missing_account_number")
-	}
-
-	// Check if the account exists
-	a, err := h.store.Account.GetAccount(data.AccountNumber)
-	if err != nil {
-		if err.Error() == "account_not_found" {
-			return NewApiError(http.StatusNotFound, err.Error())
-		}
-		return err
-	}
-
-	// TODO Check if the password is correct
-	token, err := h.store.SessionToken.CreateSessionToken(a.ID)
+	token, err := h.service.Session.Create(data.AccountNumber)
 
 	if err != nil {
 		return err

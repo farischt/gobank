@@ -5,15 +5,17 @@ import (
 	"net/http"
 
 	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/store"
+	"github.com/farischt/gobank/services"
 )
 
 type UserHandler struct {
-	store store.Store
+	service *services.Service
 }
 
-func NewUserHandler(store store.Store) *UserHandler {
-	return &UserHandler{store: store}
+func NewUserHandler(service *services.Service) *UserHandler {
+	return &UserHandler{
+		service: service,
+	}
 }
 
 /*
@@ -51,22 +53,21 @@ func (u *UserHandler) createUser(w http.ResponseWriter, r *http.Request) error {
 	}
 	defer r.Body.Close()
 
-	if len(data.FirstName) == 0 {
-		return NewApiError(http.StatusBadRequest, "empty_first_name")
-	} else if len(data.LastName) == 0 {
-		return NewApiError(http.StatusBadRequest, "empty_last_name")
-	} else if len(data.Email) == 0 {
-		return NewApiError(http.StatusBadRequest, "empty_email")
-	}
+	err := u.service.User.Create(data)
 
-	exist, err := u.store.User.GetUserByEmail(data.Email)
-	if err == nil && exist != nil {
-		return NewApiError(http.StatusBadRequest, "email_already_exist")
-	}
-
-	err = u.store.User.CreateUser(data)
 	if err != nil {
-		return err
+		switch err.Error() {
+		case "empty_first_name":
+			return NewApiError(http.StatusBadRequest, err.Error())
+		case "empty_last_name":
+			return NewApiError(http.StatusBadRequest, err.Error())
+		case "empty_email":
+			return NewApiError(http.StatusBadRequest, err.Error())
+		case "user_already_exists":
+			return NewApiError(http.StatusBadRequest, err.Error())
+		default:
+			return err
+		}
 	}
 
 	return WriteJSON(w, http.StatusCreated, NewApiResponse(http.StatusCreated, data, r))
@@ -82,15 +83,15 @@ func (u *UserHandler) getUserById(w http.ResponseWriter, r *http.Request) error 
 		return NewApiError(http.StatusBadRequest, "missing_user_id")
 	}
 
-	if id <= 0 {
-		return NewApiError(http.StatusBadRequest, "invalid_user_id")
-	}
-
-	user, err := u.store.User.GetUserByID(id)
+	user, err := u.service.User.Get(id)
 	if err != nil {
-
-		return err
+		switch err.Error() {
+		case "invalid_user_id":
+			return NewApiError(http.StatusBadRequest, err.Error())
+		default:
+			return err
+		}
 	}
 
-	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, user.Serialize(), r))
+	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, user, r))
 }

@@ -23,8 +23,8 @@ func init() {
 func main() {
 	configPort := config.GetConfig().GetInt(config.PORT)
 	port := fmt.Sprintf(":%d", configPort)
-	storage, err := store.NewPgStore()
 
+	storage, err := store.NewPostgres()
 	if err != nil {
 		log.Fatal(err)
 	}
