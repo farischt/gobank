@@ -15,8 +15,8 @@ run: build
 
 ## dev: Run the web server in development mode with a watcher.
 ## make sure to have https://github.com/githubnemo/CompileDaemon in your device
-# dev:
-# 	@cd cmd; CompileDaemon -command="./$(NAME) -e dev" -exclude-dir=.git -include=Makefile -include="*.json"
+dev:
+	@reflex -s -r '\.go$$' make run
 
 ## start: Run the web server in production mode.
 start:
