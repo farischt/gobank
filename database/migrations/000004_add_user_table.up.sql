@@ -1,18 +1,18 @@
 BEGIN TRANSACTION;
 
-CREATE TABLE IF NOT EXISTS "user"(
-  id SERIAL PRIMARY KEY,
-  first_name VARCHAR NOT NULL,
-  last_name VARCHAR NOT NULL,
-  email VARCHAR UNIQUE NOT NULL,
-  created_at TIMESTAMP DEFAULT (now()),
-  updated_at TIMESTAMP DEFAULT (now())
+CREATE TABLE IF NOT EXISTS "user" (
+  "id" SERIAL PRIMARY KEY,
+  "first_name" VARCHAR NOT NULL,
+  "last_name" VARCHAR NOT NULL,
+  "email" VARCHAR UNIQUE NOT NULL,
+  "created_at" TIMESTAMP DEFAULT (now()),
+  "updated_at" TIMESTAMP DEFAULT (now())
 );
 
-ALTER TABLE account
-    ADD COLUMN user_id INTEGER NOT NULL,
-    ADD FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    DROP COLUMN IF EXISTS first_name,
-    DROP COLUMN IF EXISTS last_name;
+ALTER TABLE "account"
+    ADD COLUMN "user_id" INTEGER NOT NULL,
+    ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    DROP COLUMN IF EXISTS "first_name",
+    DROP COLUMN IF EXISTS "last_name";
 
 COMMIT;

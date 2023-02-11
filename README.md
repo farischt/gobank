@@ -8,7 +8,7 @@ This project is a simple bank CRUD API, written using standard http and sql pack
 
 - **Make sure to update** your [docker-compose.yml](./docker-compose.yml) file to reflect your configurations.
 
-- [Compile Daemon](https://github.com/githubnemo/CompileDaemon) (globaly installed) to run the server in development mode:
+- [reflex](https://github.com/cespare/reflex) (globaly installed) to run the server in development mode:
 
 ```bash
     go install github.com/githubnemo/CompileDaemon@latest

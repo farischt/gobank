@@ -3,7 +3,7 @@
 *.development.json
 *.production.json
 
-# Ignore build files 
+# Ignore build files
 build/
 dist/
 bin/
@@ -17,3 +17,10 @@ gobank
 *.out
 *.dll
 *.APP
+
+# Ignore env files
+.env.dev
+.env.prod
+.env.*.postgres
+
+.vscode/

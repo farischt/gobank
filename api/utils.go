@@ -1,13 +1,13 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/farischt/gobank/config"
 	"github.com/gorilla/mux"
 )
 
@@ -50,55 +50,6 @@ func NewApiResponse(s int, d interface{}, r *http.Request) ApiResponse {
 }
 
 /*
-ApiServer is the API server.
-*/
-type ApiServer struct {
-	listenAddr string
-	store      Storage
-}
-
-/*
-NewApiServer creates a new instance of API server.
-*/
-func NewApiServer(l string, s Storage) *ApiServer {
-	return &ApiServer{
-		listenAddr: l,
-		store:      s,
-	}
-}
-
-/*
-Start starts the API server.
-*/
-func (s *ApiServer) Start() {
-	router := mux.NewRouter()
-
-	router.HandleFunc("/user", makeHTTPFunc(s.HandleUser))
-	router.HandleFunc("/auth/login", WithoutAuth(makeHTTPFunc(s.HandleLogin)))
-	router.HandleFunc("/account", makeHTTPFunc(s.HandleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPFunc(s.HandleUniqueAccount))
-	router.HandleFunc("/transfer", WithAuth(makeHTTPFunc(s.HandleTransfer)))
-
-	log.Println("Server up and running on port ", s.listenAddr)
-	err := http.ListenAndServe(s.listenAddr, router)
-
-	if err != nil { 
-		log.Fatal(err)
-	}
-}
-
-/*
-WriteJSON is a helper function to write JSON response.
-It will set the content-type to application/json and write the status code.
-It returns an error if the encoding fails.
-*/
-func WriteJSON(w http.ResponseWriter, status int, v any) error {
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(v)
-}
-
-/*
 apiFunc is a function that handles an API request.
 It returns an error if the request fails.
 */
@@ -119,6 +70,17 @@ func makeHTTPFunc(f apiFunc) http.HandlerFunc {
 			_ = WriteJSON(w, http.StatusInternalServerError, NewApiError(http.StatusInternalServerError, err.Error()))
 		}
 	}
+}
+
+/*
+WriteJSON is a helper function to write JSON response.
+It will set the content-type to application/json and write the status code.
+It returns an error if the encoding fails.
+*/
+func WriteJSON(w http.ResponseWriter, status int, v any) error {
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(status)
+	return json.NewEncoder(w).Encode(v)
 }
 
 /*
@@ -153,4 +115,13 @@ func GetIntParameter(r *http.Request, param string) (uint, error) {
 	}
 
 	return uint(parsedParameter), nil
+}
+
+func GetTokenFromHeader(r *http.Request) (string, error) {
+	token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
+	if token == "" {
+		return "", NewApiError(http.StatusUnauthorized, "missing_token")
+	}
+
+	return token, nil
 }
