@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/farischt/gobank/types"
+	"github.com/farischt/gobank/pkg/types"
 	"github.com/jmoiron/sqlx"
 )
 

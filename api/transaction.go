@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/services"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/services"
 )
 
 type TransactionHandler struct {
@@ -48,8 +48,9 @@ func (s *TransactionHandler) createTransaction(w http.ResponseWriter, r *http.Re
 		return err
 	}
 
-	token, ok := s.service.Session.IsValidSessionToken(tokenId)
-	if !ok {
+	// TODO: Useles check, since the token is already checked in the middleware
+	token, err := s.service.Session.Get(tokenId)
+	if err != nil {
 		return NewApiError(http.StatusUnauthorized, "unauthorized")
 	}
 

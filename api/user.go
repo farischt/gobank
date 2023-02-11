@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/services"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/services"
 )
 
 type UserHandler struct {

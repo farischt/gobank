@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/farischt/gobank/store"
-	"github.com/farischt/gobank/types"
+	"github.com/farischt/gobank/pkg/store"
+	"github.com/farischt/gobank/pkg/types"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type SessionService interface {
 	Get(tokenId string) (*types.SerializedSessionToken, error)
-	Create(accountId uint) (*types.SerializedSessionToken, error)
+	comparePassword(hashedPassword string, password []byte) bool
+	Create(accountId uint, password string) (*types.SerializedSessionToken, error)
 	IsValidSessionToken(tokenId string) (*types.SerializedSessionToken, bool)
+	Delete(tokenId string) error
 }
 
 type sessionService struct {
@@ -34,7 +37,12 @@ func (s *sessionService) Get(tokenId string) (*types.SerializedSessionToken, err
 	return t.Serialize(), nil
 }
 
-func (s *sessionService) Create(accountId uint) (*types.SerializedSessionToken, error) {
+func (s *sessionService) comparePassword(hashedPassword string, password []byte) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), password)
+	return err == nil
+}
+
+func (s *sessionService) Create(accountId uint, password string) (*types.SerializedSessionToken, error) {
 
 	if accountId <= 0 {
 		return nil, fmt.Errorf("missing_account_number")
@@ -43,10 +51,15 @@ func (s *sessionService) Create(accountId uint) (*types.SerializedSessionToken, 
 	// Check if the account exists
 	a, err := s.store.Account.GetAccount(accountId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid_id")
 	}
 
-	// TODO Check if the password is correct
+	// Compare the password
+	if !s.comparePassword(a.Password, []byte(password)) {
+		return nil, fmt.Errorf("invalid_password")
+	}
+
+	// Create a new session token
 	token, err := s.store.SessionToken.CreateSessionToken(a.ID)
 
 	return token.Serialize(), err
@@ -60,4 +73,8 @@ func (s *sessionService) IsValidSessionToken(tokenId string) (*types.SerializedS
 
 	elapsed := time.Since(st.CreatedAt)
 	return st, elapsed <= time.Second*1000
+}
+
+func (s *sessionService) Delete(tokenId string) error {
+	return s.store.SessionToken.DeleteSessionToken(tokenId)
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/services"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/services"
 )
 
 type AuthenticationHandler struct {
@@ -24,17 +24,26 @@ HandleLogin routes the request to the appropriate handler for /auth/login endpoi
 func (h *AuthenticationHandler) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "POST":
-		return h.createToken(w, r)
+		return h.login(w, r)
+	default:
+		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
+	}
+}
+
+func (h *AuthenticationHandler) HandleLogout(w http.ResponseWriter, r *http.Request) error {
+	switch r.Method {
+	case "POST":
+		return h.logout(w, r)
 	default:
 		return NewApiError(http.StatusMethodNotAllowed, "method_not_allowed")
 	}
 }
 
 /*
-handleCreateToken is the controller that handles the POST /auth/login endpoint.
+login is the controller that handles the POST /auth/login endpoint.
 It creates a new token for the user.
 */
-func (h *AuthenticationHandler) createToken(w http.ResponseWriter, r *http.Request) error {
+func (h *AuthenticationHandler) login(w http.ResponseWriter, r *http.Request) error {
 	data := new(dto.LoginDTO)
 
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -42,11 +51,27 @@ func (h *AuthenticationHandler) createToken(w http.ResponseWriter, r *http.Reque
 	}
 	defer r.Body.Close()
 
-	token, err := h.service.Session.Create(data.AccountNumber)
+	token, err := h.service.Session.Create(data.AccountNumber, data.Password)
 
 	if err != nil {
 		return err
 	}
 
 	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, token, r))
+}
+
+func (h *AuthenticationHandler) logout(w http.ResponseWriter, r *http.Request) error {
+
+	tokenId, err := GetTokenFromHeader(r)
+	if err != nil {
+		return err
+	}
+
+	err = h.service.Session.Delete(tokenId)
+
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, nil, r))
 }

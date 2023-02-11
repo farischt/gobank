@@ -7,7 +7,7 @@ import (
 
 	"github.com/farischt/gobank/api"
 	"github.com/farischt/gobank/config"
-	"github.com/farischt/gobank/store"
+	"github.com/farischt/gobank/pkg/store"
 )
 
 func init() {

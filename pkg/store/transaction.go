@@ -3,8 +3,8 @@ package store
 import (
 	"fmt"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/types"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/types"
 	"github.com/jmoiron/sqlx"
 )
 

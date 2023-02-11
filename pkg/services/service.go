@@ -1,6 +1,6 @@
 package services
 
-import "github.com/farischt/gobank/store"
+import "github.com/farischt/gobank/pkg/store"
 
 type Service struct {
 	Account     AccountService

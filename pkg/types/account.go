@@ -9,6 +9,7 @@ import (
 type Account struct {
 	ID        uint      `db:"id"`
 	UserID    uint      `db:"user_id"`
+	Password  string    `db:"password"`
 	Balance   []uint8   `db:"balance"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

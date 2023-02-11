@@ -3,9 +3,9 @@ package services
 import (
 	"fmt"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/store"
-	"github.com/farischt/gobank/types"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/store"
+	"github.com/farischt/gobank/pkg/types"
 )
 
 type UserService interface {

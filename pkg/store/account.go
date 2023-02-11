@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/types"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/types"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -53,6 +53,7 @@ func (s *AccountStore) GetAccountWithUser(id uint) (*types.Account, error) {
 	var result struct {
 		ID        uint      `db:"id"`
 		UserId    uint      `db:"user_id"`
+		Password  string    `db:"password"`
 		Balance   []uint8   `db:"balance"`
 		CreatedAt time.Time `db:"created_at"`
 		UpdatedAt time.Time `db:"updated_at"`
@@ -78,6 +79,7 @@ func (s *AccountStore) GetAccountWithUser(id uint) (*types.Account, error) {
 	account := &types.Account{
 		ID:        result.ID,
 		UserID:    result.UserId,
+		Password:  result.Password,
 		Balance:   result.Balance,
 		CreatedAt: result.CreatedAt,
 		UpdatedAt: result.UpdatedAt,
@@ -126,10 +128,11 @@ CreateAccount is a method to create an account.
 It takes a CreateAccountDTO and returns an error.
 */
 func (s *AccountStore) CreateAccount(account *dto.CreateAccountDTO) error {
-	query := `INSERT INTO account (user_id) VALUES ($1)`
+	query := `INSERT INTO account (user_id, password) VALUES ($1, $2)`
 	_, err := s.db.Exec(
 		query,
 		account.UserID,
+		account.Password,
 	)
 	return err
 }

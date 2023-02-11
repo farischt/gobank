@@ -3,14 +3,16 @@ package services
 import (
 	"fmt"
 
-	"github.com/farischt/gobank/dto"
-	"github.com/farischt/gobank/store"
-	"github.com/farischt/gobank/types"
+	"github.com/farischt/gobank/pkg/dto"
+	"github.com/farischt/gobank/pkg/store"
+	"github.com/farischt/gobank/pkg/types"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AccountService interface {
 	Get(id uint, withUser bool) (*types.SerializedAccount, error)
 	GetAll() ([]*types.SerializedAccount, error)
+	HashPassword(password []byte) (string, error)
 	Create(data *dto.CreateAccountDTO) error
 }
 
@@ -63,6 +65,15 @@ func (a *accountService) GetAll() ([]*types.SerializedAccount, error) {
 	return serializedAccounts, nil
 }
 
+func (a *accountService) HashPassword(password []byte) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hash), nil
+}
+
 func (a *accountService) Create(data *dto.CreateAccountDTO) error {
 
 	if data.UserID <= 0 {
@@ -75,5 +86,12 @@ func (a *accountService) Create(data *dto.CreateAccountDTO) error {
 		return err
 	}
 
+	// Hash password
+	hash, err := a.HashPassword([]byte(data.Password))
+	if err != nil {
+		return err
+	}
+
+	data.Password = hash
 	return a.store.Account.CreateAccount(data)
 }

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/farischt/gobank/config"
-	"github.com/farischt/gobank/services"
-	"github.com/farischt/gobank/store"
+	"github.com/farischt/gobank/pkg/services"
+	"github.com/farischt/gobank/pkg/store"
 	"github.com/gorilla/mux"
 )
 
@@ -57,6 +57,7 @@ func (s *ApiServer) Start() {
 	router.HandleFunc("/user", makeHTTPFunc(s.handlers.User.HandleUser))
 	router.HandleFunc("/user/{id}", makeHTTPFunc(s.handlers.User.HandleUniqueUser))
 	router.HandleFunc("/auth/login", s.WithoutAuth(makeHTTPFunc(s.handlers.Authentication.HandleLogin)))
+	router.HandleFunc("/auth/logout", s.WithAuth(makeHTTPFunc(s.handlers.Authentication.HandleLogout)))
 	router.HandleFunc("/account", makeHTTPFunc(s.handlers.Account.HandleAccount))
 	router.HandleFunc("/account/{id}", makeHTTPFunc(s.handlers.Account.HandleUniqueAccount))
 	router.HandleFunc("/transfer", s.WithAuth(makeHTTPFunc(s.handlers.Transaction.HandleTransfer)))
