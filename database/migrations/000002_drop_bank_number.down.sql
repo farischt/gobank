@@ -1,6 +1,6 @@
 BEGIN TRANSACTION;
 
-ALTER TABLE account 
-    ADD bank_number BIGINT UNIQUE NOT NULL;
+ALTER TABLE "account"
+    ADD "bank_number" BIGINT UNIQUE NOT NULL;
 
 COMMIT;
