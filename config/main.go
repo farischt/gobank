@@ -8,14 +8,15 @@ import (
 )
 
 const (
-	PORT        = "PORT"
-	TOKEN_NAME  = "TOKEN_NAME"
-	HOST        = "HOST"
-	DB_HOST     = "POSTGRES_HOSTNAME"
-	DB_PORT     = "POSTGRES_PORT"
-	DB_USER     = "POSTGRES_USER"
-	DB_PASSWORD = "POSTGRES_PASSWORD"
-	DB_NAME     = "POSTGRES_DB"
+	PORT                      = "PORT"
+	SESSION_COOKIE_NAME       = "SESSION_COOKIE_NAME"
+	SESSION_COOKIE_EXPIRATION = "SESSION_COOKIE_EXPIRATION"
+	HOST                      = "HOST"
+	DB_HOST                   = "POSTGRES_HOSTNAME"
+	DB_PORT                   = "POSTGRES_PORT"
+	DB_USER                   = "POSTGRES_USER"
+	DB_PASSWORD               = "POSTGRES_PASSWORD"
+	DB_NAME                   = "POSTGRES_DB"
 )
 
 var config *viper.Viper

@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
+	"github.com/farischt/gobank/config"
 	"github.com/farischt/gobank/pkg/dto"
 	"github.com/farischt/gobank/pkg/services"
 )
@@ -57,12 +59,19 @@ func (h *AuthenticationHandler) login(w http.ResponseWriter, r *http.Request) er
 		return err
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.GetConfig().GetString(config.SESSION_COOKIE_NAME),
+		Value:    token.ID,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   config.GetConfig().GetInt(config.SESSION_COOKIE_EXPIRATION), // Seconds
+	})
+
 	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, token, r))
 }
 
 func (h *AuthenticationHandler) logout(w http.ResponseWriter, r *http.Request) error {
-
-	tokenId, err := GetTokenFromHeader(r)
+	tokenId, err := GetTokenFromCookie(r)
 	if err != nil {
 		return err
 	}
@@ -72,6 +81,14 @@ func (h *AuthenticationHandler) logout(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return err
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.GetConfig().GetString(config.SESSION_COOKIE_NAME),
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Now(),
+	})
 
 	return WriteJSON(w, http.StatusOK, NewApiResponse(http.StatusOK, nil, r))
 }

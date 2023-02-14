@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -117,11 +118,16 @@ func GetIntParameter(r *http.Request, param string) (uint, error) {
 	return uint(parsedParameter), nil
 }
 
-func GetTokenFromHeader(r *http.Request) (string, error) {
-	token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
-	if token == "" {
+func GetTokenFromCookie(r *http.Request) (string, error) {
+	token, err := r.Cookie(config.GetConfig().GetString(config.SESSION_COOKIE_NAME))
+
+	if token != nil {
+		log.Println("token")
+	}
+
+	if err != nil || token.Value == "" {
 		return "", NewApiError(http.StatusUnauthorized, "missing_token")
 	}
 
-	return token, nil
+	return token.Value, nil
 }

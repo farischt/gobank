@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/farischt/gobank/config"
 	"github.com/farischt/gobank/pkg/services"
 	"github.com/farischt/gobank/pkg/store"
 	"github.com/gorilla/mux"
@@ -77,7 +76,14 @@ func (s *ApiServer) WithAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("authentication protected route")
 
-		token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
+		token, err := GetTokenFromCookie(r)
+
+		if err != nil {
+			log.Println(err)
+			_ = WriteJSON(w, http.StatusForbidden, NewApiError(http.StatusInternalServerError, "couldnt_parse_cookies"))
+			return
+		}
+
 		if len(token) == 0 {
 			_ = WriteJSON(w, http.StatusUnauthorized, NewApiError(http.StatusUnauthorized, "missing_token"))
 			return
@@ -102,9 +108,11 @@ func (s *ApiServer) WithoutAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("without authentication protected route")
 
-		// Check if the token is already set
-		token := r.Header.Get(config.GetConfig().GetString(config.TOKEN_NAME))
-		if len(token) > 0 {
+		token, err := GetTokenFromCookie(r)
+
+		log.Println("without authentication protected route")
+
+		if len(token) > 0 || err == nil {
 			_ = WriteJSON(w, http.StatusForbidden, NewApiError(http.StatusForbidden, "already_authenticated"))
 			return
 		}

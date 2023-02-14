@@ -43,7 +43,7 @@ func (s *TransactionHandler) createTransaction(w http.ResponseWriter, r *http.Re
 	}
 	defer r.Body.Close()
 
-	tokenId, err := GetTokenFromHeader(r)
+	tokenId, err := GetTokenFromCookie(r)
 	if err != nil {
 		return err
 	}

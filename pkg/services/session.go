@@ -72,7 +72,8 @@ func (s *sessionService) IsValidSessionToken(tokenId string) (*types.SerializedS
 	}
 
 	elapsed := time.Since(st.CreatedAt)
-	return st, elapsed <= time.Second*1000
+	// TODO: get 3600 from config file
+	return st, elapsed <= time.Second*3600
 }
 
 func (s *sessionService) Delete(tokenId string) error {
