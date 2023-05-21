@@ -17,7 +17,7 @@ services:
 
   postgres:
     env_file:
-      - ./.env.dev.postgres
+      - ./config/.env.dev.postgres
     container_name: gobank-database
     image: postgres
     environment:

@@ -28,8 +28,7 @@ func InitBaseConfig(env string) {
 	var err error
 	config = viper.New()
 
-	config.AddConfigPath(".././")
-	config.AddConfigPath("./")
+	config.AddConfigPath("./config")
 
 	config.SetConfigType("env")
 	config.SetConfigName(fmt.Sprintf(".env.%s", env))
@@ -44,8 +43,7 @@ func InitDbConfig(env string) {
 	var err error
 	dbConfig = viper.New()
 
-	dbConfig.AddConfigPath(".././")
-	dbConfig.AddConfigPath("./")
+	dbConfig.AddConfigPath("./config")
 
 	dbConfig.SetConfigType("env")
 	dbConfig.SetConfigName(fmt.Sprintf(".env.%s.postgres", env))
