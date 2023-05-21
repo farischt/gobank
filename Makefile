@@ -1,5 +1,5 @@
 NAME=gobank
-VERSION=0.0.1
+VERSION=0.0.2
 
 ## deps: Install the dependencies.
 deps:
